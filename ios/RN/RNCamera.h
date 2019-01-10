@@ -17,7 +17,7 @@
 
 @class RNCamera;
 
-@interface RNCamera : UIView <AVCaptureMetadataOutputObjectsDelegate, AVCaptureFileOutputRecordingDelegate, RNFaceDetectorDelegate, AVCaptureVideoDataOutputSampleBufferDelegate>
+@interface RNCamera : UIView <AVCaptureMetadataOutputObjectsDelegate, AVCaptureFileOutputRecordingDelegate, RNFaceDetectorDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, UIGestureRecognizerDelegate> 
 
 @property(nonatomic, strong) dispatch_queue_t sessionQueue;
 @property(nonatomic, strong) AVCaptureSession *session;
@@ -46,6 +46,7 @@
 @property(assign, nonatomic, nullable) NSNumber *defaultVideoQuality;
 @property(assign, nonatomic, nullable) NSNumber *deviceOrientation;
 @property(assign, nonatomic, nullable) NSNumber *orientation;
+@property(nonatomic, strong) UIView *focusView;
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 - (void)updateType;

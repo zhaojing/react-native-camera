@@ -59,6 +59,19 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
                                                      name:UIDeviceOrientationDidChangeNotification
                                                    object:nil];
         self.autoFocus = -1;
+        /*
+         * 对焦手势
+         */
+        UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(focusGesture:)];
+        tapGesture.numberOfTouchesRequired = 1;
+        tapGesture.numberOfTapsRequired = 1;
+        tapGesture.delegate = self;
+        [self addGestureRecognizer: tapGesture];
+        
+        /*
+         * 对焦效果view
+         */
+        [self layoutFocusView];
         //        [[NSNotificationCenter defaultCenter] addObserver:self
         //                                                 selector:@selector(bridgeDidForeground:)
         //                                                     name:EX_UNVERSIONED(@"EXKernelBridgeDidForegroundNotification")
@@ -108,12 +121,64 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
     }
 }
 
+- (void) layoutFocusView {
+    
+    self.focusView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, 50, 50)];
+    self.focusView.layer.borderWidth = 1.0;
+    self.focusView.layer.borderColor =[UIColor yellowColor].CGColor;
+    self.focusView.backgroundColor = [UIColor clearColor];
+    self.focusView.alpha = 0;
+}
+
 - (void)layoutSubviews
 {
     [super layoutSubviews];
     self.previewLayer.frame = self.bounds;
     [self setBackgroundColor:[UIColor blackColor]];
     [self.layer insertSublayer:self.previewLayer atIndex:0];
+    [self insertSubview:self.focusView atIndex:1];
+   
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    if (touch.view != self) {
+        return NO;
+    }
+    return YES;
+}
+
+- (void)focusGesture:(UITapGestureRecognizer*)gesture{
+    CGPoint point = [gesture locationInView:gesture.view];
+    [self focusAtPoint:point];
+}
+
+- (void)focusAtPoint:(CGPoint)point{
+    AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+    CGSize size = self.bounds.size;
+    CGPoint focusPoint = CGPointMake( point.y /size.height ,1-point.x/size.width );
+    NSError *error;
+    if ([device lockForConfiguration:&error]) {
+        if ([device isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+            [device setFocusPointOfInterest:focusPoint];
+            [device setFocusMode:AVCaptureFocusModeAutoFocus];
+        }
+        [device unlockForConfiguration];
+    }
+    /*
+     * 下面是手触碰屏幕后对焦的效果
+     */
+    self.focusView.center = point;
+    self.focusView.alpha = 1;
+    
+    [UIView animateWithDuration:0.3 animations:^{
+        self.focusView.transform = CGAffineTransformMakeScale(1.25, 1.25);
+    }completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.5 animations:^{
+            self.focusView.transform = CGAffineTransformIdentity;
+        } completion:^(BOOL finished) {
+            self.focusView.alpha = 0;
+        }];
+    }];
 }
 
 - (void)insertReactSubview:(UIView *)view atIndex:(NSInteger)atIndex
@@ -202,6 +267,7 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
 
     [device unlockForConfiguration];
 }
+
 
 - (void)updateAutoFocusPointOfInterest
 {
