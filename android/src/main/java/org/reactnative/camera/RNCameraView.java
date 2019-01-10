@@ -226,12 +226,13 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     // React handles this for us, so we don't need to call super.requestLayout();
   }
 
-  @Override
-  public void onViewAdded(View child) {
-    if (this.getView() == child || this.getView() == null) return;
-    this.removeView(this.getView());
-    this.addView(this.getView(), 0);
-  }
+//  @Override
+//  public void onViewAdded(View child) {
+//    if (this.getView() != child && this.getView() != null) {
+//      this.removeView(this.getView());
+//      this.addView(this.getView(), 0);
+//    }
+//  }
 
   public void setBarCodeTypes(List<String> barCodeTypes) {
     mBarCodeTypes = barCodeTypes;

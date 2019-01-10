@@ -119,7 +119,7 @@ export default class CameraScreen extends React.Component {
         permissionDialogTitle={'Permission to use camera'}
         permissionDialogMessage={'We need your permission to use your camera phone'}
       >
-        <TouchableOpacity style={styles.flipButton} onPress={this.toggleFacing.bind(this)}>
+        <TouchableOpacity style={styles.flipButton} onPress={() => console.log('234234234234')}>
           <Text style={styles.flipText}> FLIP </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.flipButton} onPress={this.toggleFlash.bind(this)}>

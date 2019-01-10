@@ -42,6 +42,7 @@ import com.facebook.react.bridge.ReadableMap;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -83,6 +84,7 @@ public class CameraView extends FrameLayout {
 
     CameraViewImpl mImpl;
 
+
     private final CallbackBridge mCallbacks;
 
     private boolean mAdjustViewBounds;
@@ -104,7 +106,7 @@ public class CameraView extends FrameLayout {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         mImpl.autoFocus(new PointF(event.getX(), event.getY()));
-        return true;
+        return super.onTouchEvent(event);
     }
 
     public void startTapFocus(PointF point) {
@@ -148,7 +150,7 @@ public class CameraView extends FrameLayout {
         };
 
         mTapGestureLayout = new TapGestureLayout(context);
-        addView(mTapGestureLayout, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+
     }
 
     @NonNull
@@ -167,6 +169,19 @@ public class CameraView extends FrameLayout {
         super.onAttachedToWindow();
         if (!isInEditMode()) {
             mDisplayOrientationDetector.enable(ViewCompat.getDisplay(this));
+        }
+        List<View> otherChildren = new ArrayList<>();
+        for (int i = 0; i < getChildCount(); i++) {
+            View view = getChildAt(i);
+            if (view != getView()) {
+                otherChildren.add(view);
+            }
+        }
+        removeAllViews();
+        addView(getView());
+        addView(mTapGestureLayout);
+        for (View otherChild : otherChildren) {
+            addView(otherChild);
         }
     }
 

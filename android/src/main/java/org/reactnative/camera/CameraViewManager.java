@@ -1,6 +1,8 @@
 package org.reactnative.camera;
 
 import android.support.annotation.Nullable;
+import android.view.View;
+
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -56,6 +58,7 @@ public class CameraViewManager extends ViewGroupManager<RNCameraView> {
   protected RNCameraView createViewInstance(ThemedReactContext themedReactContext) {
     return new RNCameraView(themedReactContext);
   }
+
 
   @Override
   @Nullable
