@@ -84,4 +84,8 @@ abstract class PreviewImpl {
         return mHeight;
     }
 
+    final boolean hasSurface() {
+        return mWidth > 0 && mHeight > 0;
+    }
+
 }

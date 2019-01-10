@@ -17,18 +17,25 @@
 package com.google.android.cameraview;
 
 import android.annotation.SuppressLint;
+import android.graphics.PointF;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.Build;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 import android.support.v4.util.SparseArrayCompat;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.facebook.react.bridge.ReadableMap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -37,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("deprecation")
 class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
-                                                MediaRecorder.OnErrorListener, Camera.PreviewCallback {
+                                                MediaRecorder.OnErrorListener, Camera.PreviewCallback, Thread.UncaughtExceptionHandler {
 
     private static final int INVALID_CAMERA_ID = -1;
 
@@ -61,6 +68,8 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
       WB_MODES.put(Constants.WB_FLUORESCENT, Camera.Parameters.WHITE_BALANCE_FLUORESCENT);
       WB_MODES.put(Constants.WB_INCANDESCENT, Camera.Parameters.WHITE_BALANCE_INCANDESCENT);
     }
+
+    private final WorkerHandler mHandler;
 
     private int mCameraId;
 
@@ -110,6 +119,21 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
 
     private SurfaceTexture mPreviewTexture;
 
+    private Runnable mPostFocusResetRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!isCameraOpened()) return;
+            mCamera.cancelAutoFocus();
+            Camera.Parameters params = mCamera.getParameters();
+            int maxAF = params.getMaxNumFocusAreas();
+            int maxAE = params.getMaxNumMeteringAreas();
+            if (maxAF > 0) params.setFocusAreas(null);
+            if (maxAE > 0) params.setMeteringAreas(null);
+            applyDefaultFocus(params); // Revert to internal focus.
+            mCamera.setParameters(params);
+        }
+    };
+
     Camera1(Callback callback, PreviewImpl preview) {
         super(callback, preview);
         preview.setCallback(new PreviewImpl.Callback() {
@@ -127,6 +151,9 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
               stop();
             }
         });
+        mHandler = WorkerHandler.get("Camera1");
+        mHandler.getThread().setUncaughtExceptionHandler(this);
+
     }
 
     @Override
@@ -164,6 +191,27 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
             }
         }
         releaseCamera();
+    }
+
+    // Choose the best default focus, based on session type.
+    private void applyDefaultFocus(@NonNull Camera.Parameters params) {
+        List<String> modes = params.getSupportedFocusModes();
+
+        if (modes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            return;
+        }
+
+        if (modes.contains(Camera.Parameters.FOCUS_MODE_INFINITY)) {
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
+            return;
+        }
+
+        if (modes.contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
+            //noinspection UnnecessaryReturnStatement
+            return;
+        }
     }
 
     // Suppresses Camera#setPreviewTexture
@@ -922,4 +970,105 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
     public void onError(MediaRecorder mr, int what, int extra) {
         stopRecording();
     }
+
+    @Override
+    public void autoFocus(@NonNull final PointF point) {
+        int viewWidth = 0, viewHeight = 0;
+        if (mPreview != null && mPreview.hasSurface()) {
+            viewWidth = mPreview.getView().getWidth();
+            viewHeight = mPreview.getView().getHeight();
+        }
+        final int viewWidthF = viewWidth;
+        final int viewHeightF = viewHeight;
+        schedule(null, true, new Runnable() {
+            @Override
+            public void run() {
+                final PointF p = new PointF(point.x, point.y);
+                List<Camera.Area> meteringAreas2 = computeMeteringAreas(p.x, p.y,
+                        viewWidthF, viewHeightF, 0);
+                List<Camera.Area> meteringAreas1 = meteringAreas2.subList(0, 1);
+
+                Camera.Parameters params = mCamera.getParameters();
+                int maxAF = params.getMaxNumFocusAreas();
+                int maxAE = params.getMaxNumMeteringAreas();
+                if (maxAF > 0) params.setFocusAreas(maxAF > 1 ? meteringAreas2 : meteringAreas1);
+                if (maxAE > 0) params.setMeteringAreas(maxAE > 1 ? meteringAreas2 : meteringAreas1);
+                params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                mCamera.setParameters(params);
+                mCallback.startTapFocus(point);
+                try {
+                    mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                        @Override
+                        public void onAutoFocus(boolean success, Camera camera) {
+                            mCallback.endTapFocus(true);
+                            mHandler.get().removeCallbacks(mPostFocusResetRunnable);
+                            mHandler.get().postDelayed(mPostFocusResetRunnable, 3000);
+                        }
+                    });
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                    mCallback.endTapFocus(false);
+                }
+            }
+        });
+    }
+
+    @NonNull
+    @WorkerThread
+    private static List<Camera.Area> computeMeteringAreas(double viewClickX, double viewClickY,
+                                                          int viewWidth, int viewHeight,
+                                                          int sensorToDisplay) {
+        // Event came in view coordinates. We must rotate to sensor coordinates.
+        // First, rescale to the -1000 ... 1000 range.
+        int displayToSensor = -sensorToDisplay;
+        viewClickX = -1000d + (viewClickX / (double) viewWidth) * 2000d;
+        viewClickY = -1000d + (viewClickY / (double) viewHeight) * 2000d;
+
+        // Apply rotation to this point.
+        // https://academo.org/demos/rotation-about-point/
+        double theta = ((double) displayToSensor) * Math.PI / 180;
+        double sensorClickX = viewClickX * Math.cos(theta) - viewClickY * Math.sin(theta);
+        double sensorClickY = viewClickX * Math.sin(theta) + viewClickY * Math.cos(theta);
+
+        // Compute the rect bounds.
+        Rect rect1 = computeMeteringArea(sensorClickX, sensorClickY, 150d);
+        int weight1 = 1000; // 150 * 150 * 1000 = more than 10.000.000
+        Rect rect2 = computeMeteringArea(sensorClickX, sensorClickY, 300d);
+        int weight2 = 100; // 300 * 300 * 100 = 9.000.000
+
+        List<Camera.Area> list = new ArrayList<>(2);
+        list.add(new Camera.Area(rect1, weight1));
+        list.add(new Camera.Area(rect2, weight2));
+        return list;
+    }
+
+    @NonNull
+    private static Rect computeMeteringArea(double centerX, double centerY, double size) {
+        double delta = size / 2d;
+        int top = (int) Math.max(centerY - delta, -1000);
+        int bottom = (int) Math.min(centerY + delta, 1000);
+        int left = (int) Math.max(centerX - delta, -1000);
+        int right = (int) Math.min(centerX + delta, 1000);
+        return new Rect(left, top, right, bottom);
+    }
+
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+
+    }
+
+    private void schedule(@Nullable final Task<Void> task, final boolean ensureAvailable, final Runnable action) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (ensureAvailable && !mShowingPreview) {
+                    if (task != null) task.end(null);
+                } else {
+                    action.run();
+                    if (task != null) task.end(null);
+                }
+            }
+        });
+    }
+
 }

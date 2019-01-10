@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PointF;
 import android.media.CamcorderProfile;
 import android.media.MediaActionSound;
 import android.os.Build;
@@ -170,6 +171,16 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
           new TextRecognizerAsyncTask(delegate, mTextRecognizer, data, width, height, correctRotation).execute();
         }
       }
+
+      @Override
+      public void startTapFocus(CameraView cameraView, PointF point) {
+          cameraView.startTapFocus(point);
+      }
+
+      @Override
+      public void endTapFocus(CameraView cameraView, boolean isSuccess) {
+        cameraView.endTapFocus(isSuccess);
+      }
     });
   }
 
@@ -205,7 +216,8 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
     int paddingX = (int) ((width - correctWidth) / 2);
     int paddingY = (int) ((height - correctHeight) / 2);
-    preview.layout(paddingX, paddingY, correctWidth + paddingX, correctHeight + paddingY);
+    preview.layout(left, top, right, bottom);
+    ((View) mTapGestureLayout).layout(left, top, right, bottom);
   }
 
   @SuppressLint("all")
@@ -217,8 +229,6 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
   @Override
   public void onViewAdded(View child) {
     if (this.getView() == child || this.getView() == null) return;
-    // remove and read view to make sure it is in the back.
-    // @TODO figure out why there was a z order issue in the first place and fix accordingly.
     this.removeView(this.getView());
     this.addView(this.getView(), 0);
   }

@@ -16,7 +16,10 @@
 
 package com.google.android.cameraview;
 
+import android.graphics.PointF;
 import android.media.CamcorderProfile;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.view.View;
 import android.graphics.SurfaceTexture;
 
@@ -111,6 +114,8 @@ abstract class CameraViewImpl {
 
     abstract public Size getPreviewSize();
 
+    abstract public void autoFocus(@NonNull final PointF point);
+
     interface Callback {
 
         void onCameraOpened();
@@ -124,6 +129,9 @@ abstract class CameraViewImpl {
         void onFramePreview(byte[] data, int width, int height, int orientation);
 
         void onMountError();
+
+        void startTapFocus(PointF point);
+        void endTapFocus(boolean success);
     }
 
 }

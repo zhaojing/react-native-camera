@@ -18,8 +18,11 @@ package com.google.android.cameraview;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.PointF;
 import android.media.CamcorderProfile;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.IntDef;
@@ -29,6 +32,7 @@ import android.support.v4.os.ParcelableCompat;
 import android.support.v4.os.ParcelableCompatCreatorCallbacks;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.graphics.SurfaceTexture;
@@ -48,6 +52,7 @@ public class CameraView extends FrameLayout {
 
     /** The camera device faces the same direction as the device's screen. */
     public static final int FACING_FRONT = Constants.FACING_FRONT;
+    public TapGestureLayout mTapGestureLayout = null;
 
     /** Direction the camera faces relative to device screen. */
     @IntDef({FACING_BACK, FACING_FRONT})
@@ -86,12 +91,28 @@ public class CameraView extends FrameLayout {
 
     private final DisplayOrientationDetector mDisplayOrientationDetector;
 
+    private Handler mUiHandler;
+
     public CameraView(Context context, boolean fallbackToOldApi) {
         this(context, null, fallbackToOldApi);
     }
 
     public CameraView(Context context, AttributeSet attrs, boolean fallbackToOldApi) {
         this(context, attrs, 0, fallbackToOldApi);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        mImpl.autoFocus(new PointF(event.getX(), event.getY()));
+        return true;
+    }
+
+    public void startTapFocus(PointF point) {
+       mTapGestureLayout.onFocusStart(point);
+    }
+
+    public void endTapFocus(boolean isSuccess) {
+        mTapGestureLayout.onFocusEnd(isSuccess);
     }
 
     @SuppressWarnings("WrongConstant")
@@ -104,6 +125,7 @@ public class CameraView extends FrameLayout {
         }
         mAdjustViewBounds = true;
         mContext = context;
+        mUiHandler = new Handler(Looper.getMainLooper());
 
         // Internal setup
         final PreviewImpl preview = createPreviewImpl(context);
@@ -124,6 +146,9 @@ public class CameraView extends FrameLayout {
                 mImpl.setDeviceOrientation(deviceOrientation);
             }
         };
+
+        mTapGestureLayout = new TapGestureLayout(context);
+        addView(mTapGestureLayout, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
     @NonNull
@@ -603,6 +628,31 @@ public class CameraView extends FrameLayout {
             }
         }
 
+        @Override
+        public void startTapFocus(final PointF point) {
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    for (Callback callback : mCallbacks) {
+                        callback.startTapFocus(CameraView.this, point);
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void endTapFocus(final boolean success) {
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    for (Callback callback : mCallbacks) {
+                        callback.endTapFocus(CameraView.this, success);
+                    }
+                }
+            });
+
+        }
+
         public void reserveRequestLayoutOnOpen() {
             mRequestLayoutOnOpen = true;
         }
@@ -723,6 +773,8 @@ public class CameraView extends FrameLayout {
         }
 
         public void onMountError(CameraView cameraView) {}
-    }
 
+        public void startTapFocus(CameraView cameraView, PointF point) {}
+        public void endTapFocus(CameraView cameraView, boolean isSuccess){}
+    }
 }

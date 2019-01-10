@@ -19,6 +19,7 @@ package com.google.android.cameraview;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -830,6 +831,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
     @Override
     public Size getPreviewSize() {
         return new Size(mPreview.getWidth(), mPreview.getHeight());
+    }
+
+    @Override
+    public void autoFocus(@NonNull PointF point) {
+
     }
 
     /**
