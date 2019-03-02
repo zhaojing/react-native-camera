@@ -216,7 +216,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
     int paddingX = (int) ((width - correctWidth) / 2);
     int paddingY = (int) ((height - correctHeight) / 2);
-    preview.layout(left, top, right, bottom);
+    preview.layout(paddingX, paddingY, correctWidth + paddingX, correctHeight + paddingY);
     ((View) mTapGestureLayout).layout(left, top, right, bottom);
   }
 
@@ -226,13 +226,13 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     // React handles this for us, so we don't need to call super.requestLayout();
   }
 
-//  @Override
-//  public void onViewAdded(View child) {
-//    if (this.getView() != child && this.getView() != null) {
-//      this.removeView(this.getView());
-//      this.addView(this.getView(), 0);
-//    }
-//  }
+  @Override
+  public void onViewAdded(View child) {
+    if (this.getView() != child && this.getView() != null) {
+      this.removeView(this.getView());
+      this.addView(this.getView(), 0);
+    }
+  }
 
   public void setBarCodeTypes(List<String> barCodeTypes) {
     mBarCodeTypes = barCodeTypes;

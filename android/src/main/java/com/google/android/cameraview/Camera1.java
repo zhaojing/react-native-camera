@@ -449,7 +449,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
                 }
             });
         } else {
-            takePictureInternal(options);
+           takePictureInternal(options);
         }
     }
 
@@ -497,7 +497,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
                 @Override
                 public void onPictureTaken(byte[] data, Camera camera) {
                     isPictureCaptureInProgress.set(false);
-                    camera.cancelAutoFocus();
+//                    camera.cancelAutoFocus();
                     if (options.hasKey("pauseAfterCapture") && !options.getBoolean("pauseAfterCapture")) {
                         camera.startPreview();
                         mIsPreviewActive = true;
@@ -680,7 +680,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
             mIsPreviewActive = false;
         }
         mCameraParameters.setPreviewSize(size.getWidth(), size.getHeight());
-        mCameraParameters.setPictureSize(mPictureSize.getWidth(), mPictureSize.getHeight());
+        mCameraParameters.setPictureSize(size.getWidth(), size.getHeight());
         if (mOrientation != Constants.ORIENTATION_AUTO) {
             mCameraParameters.setRotation(calcCameraRotation(orientationEnumToRotation(mOrientation)));
         } else {

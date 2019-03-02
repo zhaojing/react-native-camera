@@ -81,7 +81,10 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
 
         // we need the stream only for photos from a device
         if (mBitmap == null) {
-            mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inDither = true;
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length, options);
             inputStream = new ByteArrayInputStream(mImageData);
         }
 
@@ -117,28 +120,30 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             response.putInt("height", mBitmap.getHeight());
 
             // Cache compressed image in imageStream
-            ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
-            mBitmap.compress(Bitmap.CompressFormat.JPEG, getQuality(), imageStream);
+//            ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
+//            mBitmap.compress(Bitmap.CompressFormat.JPEG, getQuality(), imageStream);
 
             // Write compressed image to file in cache directory unless otherwise specified
             if (!mOptions.hasKey("doNotSave") || !mOptions.getBoolean("doNotSave")) {
-                String filePath = writeStreamToFile(imageStream);
+                String filePath = writeByteToFile(mImageData);
                 File imageFile = new File(filePath);
                 String fileUri = Uri.fromFile(imageFile).toString();
+                response.putString("fileSize", String.valueOf(imageFile.length()));
                 response.putString("uri", fileUri);
             }
 
             // Write base64-encoded image to the response if requested
-            if (mOptions.hasKey("base64") && mOptions.getBoolean("base64")) {
-                response.putString("base64", Base64.encodeToString(imageStream.toByteArray(), Base64.NO_WRAP));
-            }
-
-            // Cleanup
-            imageStream.close();
-            if (inputStream != null) {
-                inputStream.close();
-                inputStream = null;
-            }
+//            if (mOptions.hasKey("base64") && mOptions.getBoolean("base64")) {
+//                byte[] imageByte = imageStream.toByteArray();
+//                response.putString("base64", Base64.encodeToString(imageByte, Base64.NO_WRAP));
+//            }
+//
+//            // Cleanup
+//            imageStream.close();
+//            if (inputStream != null) {
+//                inputStream.close();
+//                inputStream = null;
+//            }
 
             return response;
         } catch (Resources.NotFoundException e) {
@@ -208,6 +213,35 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             outputPath = RNFileUtils.getOutputFilePath(mCacheDirectory, ".jpg");
             outputStream = new FileOutputStream(outputPath);
             inputStream.writeTo(outputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+            exception = e;
+        } finally {
+            try {
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (exception != null) {
+            throw exception;
+        }
+
+        return outputPath;
+    }
+    private String writeByteToFile(byte[] data) throws IOException {
+        String outputPath = null;
+        IOException exception = null;
+        FileOutputStream outputStream = null;
+
+        try {
+            outputPath = RNFileUtils.getOutputFilePath(mCacheDirectory, ".jpg");
+            outputStream = new FileOutputStream(outputPath);
+            outputStream.write(data);
+            outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
             exception = e;
