@@ -680,7 +680,7 @@ class Camera1 extends CameraViewImpl implements MediaRecorder.OnInfoListener,
             mIsPreviewActive = false;
         }
         mCameraParameters.setPreviewSize(size.getWidth(), size.getHeight());
-        mCameraParameters.setPictureSize(size.getWidth(), size.getHeight());
+        //mCameraParameters.setPictureSize(size.getWidth(), size.getHeight());
         if (mOrientation != Constants.ORIENTATION_AUTO) {
             mCameraParameters.setRotation(calcCameraRotation(orientationEnumToRotation(mOrientation)));
         } else {
