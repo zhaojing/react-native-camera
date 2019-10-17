@@ -442,7 +442,6 @@ export default class Camera extends React.Component<PropsType, StateType> {
 
   render() {
     const nativeProps = this._convertNativeProps(this.props);
-
     if (this.state.isAuthorized || this.hasFaCC()) {
       return (
         <RNCamera

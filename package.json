@@ -1,16 +1,53 @@
 {
-  "name": "react-native-camera",
-  "description": "A Camera component for React Native. Also reads barcodes.",
-  "version": "1.6.4",
-  "author": "Lochlan Wansbrough <lochie@live.com> (http://lwansbrough.com)",
+  "_from": "git+https://github.com/zhengdianfang/react-native-camera.git",
+  "_id": "react-native-camera@1.6.4",
+  "_inBundle": false,
+  "_integrity": "",
+  "_location": "/react-native-camera",
+  "_phantomChildren": {
+    "js-tokens": "3.0.2",
+    "object-assign": "4.1.1"
+  },
+  "_requested": {
+    "type": "git",
+    "raw": "react-native-camera@git+https://github.com/zhengdianfang/react-native-camera.git",
+    "name": "react-native-camera",
+    "escapedName": "react-native-camera",
+    "rawSpec": "git+https://github.com/zhengdianfang/react-native-camera.git",
+    "saveSpec": "git+https://github.com/zhengdianfang/react-native-camera.git",
+    "fetchSpec": "https://github.com/zhengdianfang/react-native-camera.git",
+    "gitCommittish": null
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "git+https://github.com/zhengdianfang/react-native-camera.git#9d81cbd0d9be5599ad827982c63ee612e9463116",
+  "_spec": "react-native-camera@git+https://github.com/zhengdianfang/react-native-camera.git",
+  "_where": "/Volumes/Samsung/01code/daimler/MBB/MBBMobile/mobile",
+  "author": {
+    "name": "Lochlan Wansbrough",
+    "email": "lochie@live.com",
+    "url": "http://lwansbrough.com"
+  },
+  "bugs": {
+    "url": "https://github.com/react-native-community/react-native-camera/issues"
+  },
+  "bundleDependencies": false,
   "collective": {
     "type": "opencollective",
     "url": "https://opencollective.com/react-native-camera",
     "logo": "https://opencollective.com/opencollective/logo.txt"
   },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/prompt"
+    }
+  },
   "dependencies": {
     "prop-types": "^15.6.2"
   },
+  "deprecated": false,
+  "description": "A Camera component for React Native. Also reads barcodes.",
   "devDependencies": {
     "@commitlint/cli": "^7.0.0",
     "@commitlint/config-conventional": "^7.0.1",
@@ -60,20 +97,9 @@
     ]
   },
   "main": "src/index.js",
+  "name": "react-native-camera",
   "nativePackage": true,
   "pre-commit": "lint:staged",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/react-native-community/react-native-camera.git"
-  },
-  "scripts": {
-    "commit": "git-cz",
-    "lint": "eslint src --max-warnings=0",
-    "lint:staged": "lint-staged",
-    "prettier": "prettier --write --single-quote true --trailing-comma all --print-width 100",
-    "ci:publish": "semantic-release"
-  },
-  "types": "types",
   "release": {
     "plugins": [
       "@semantic-release/commit-analyzer",
@@ -97,9 +123,17 @@
       ]
     ]
   },
-  "config": {
-    "commitizen": {
-      "path": "@commitlint/prompt"
-    }
-  }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/react-native-community/react-native-camera.git"
+  },
+  "scripts": {
+    "ci:publish": "semantic-release",
+    "commit": "git-cz",
+    "lint": "eslint src --max-warnings=0",
+    "lint:staged": "lint-staged",
+    "prettier": "prettier --write --single-quote true --trailing-comma all --print-width 100"
+  },
+  "types": "types",
+  "version": "1.6.4"
 }
